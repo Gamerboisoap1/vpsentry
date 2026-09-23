@@ -1,0 +1,34 @@
+[Unit]
+Description=VPSentry security dashboard and host monitoring
+Wants=network-online.target vpsentry-network.service vpsentry-firewall.timer
+After=network-online.target
+
+[Service]
+Type=simple
+User=vpsentry
+Group=vpsentry
+SupplementaryGroups=adm systemd-journal
+WorkingDirectory=/opt/vpsentry/current
+EnvironmentFile=/etc/vpsentry/vpsentry.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/vpsentry/current/.venv/bin/python -m backend
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+UMask=0027
+StateDirectory=vpsentry
+StateDirectoryMode=0750
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+CapabilityBoundingSet=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

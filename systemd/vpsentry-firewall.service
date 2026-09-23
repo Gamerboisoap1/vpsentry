@@ -1,0 +1,25 @@
+[Unit]
+Description=VPSentry read-only firewall state inspection
+
+[Service]
+Type=oneshot
+User=vpsentry
+Group=vpsentry
+WorkingDirectory=/opt/vpsentry/current
+EnvironmentFile=/etc/vpsentry/vpsentry.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/vpsentry/current/.venv/bin/python -m backend.monitors.firewall
+UMask=0027
+StateDirectory=vpsentry
+StateDirectoryMode=0750
+AmbientCapabilities=CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_ADMIN
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_NETLINK AF_INET AF_INET6

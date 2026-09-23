@@ -1,0 +1,33 @@
+[Unit]
+Description=VPSentry passive inbound packet observer
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=vpsentry
+Group=vpsentry
+WorkingDirectory=/opt/vpsentry/current
+EnvironmentFile=/etc/vpsentry/vpsentry.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/vpsentry/current/.venv/bin/python -m backend.monitors.network
+Restart=on-failure
+RestartSec=10
+UMask=0027
+StateDirectory=vpsentry
+StateDirectoryMode=0750
+AmbientCapabilities=CAP_NET_RAW
+CapabilityBoundingSet=CAP_NET_RAW
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_PACKET AF_UNIX AF_INET AF_INET6 AF_NETLINK
+
+[Install]
+WantedBy=multi-user.target

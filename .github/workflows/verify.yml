@@ -1,0 +1,36 @@
+name: Verify VPSentry
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm --prefix frontend ci && npm --prefix frontend run build
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+      - run: bash -n install.sh && shellcheck install.sh
+  installed-service:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo ./install.sh
+      - name: Verify fresh install and restart
+        run: cd /opt/vpsentry/current && sudo .venv/bin/python -m scripts.verify_linux
+      - name: Verify repeat installation preserves data
+        run: |
+          sudo ./install.sh
+          cd /opt/vpsentry/current
+          sudo .venv/bin/python -m scripts.verify_linux
+      - name: Service diagnostics
+        if: failure()
+        run: sudo journalctl -u vpsentry -u vpsentry-network -u vpsentry-firewall -n 100 --no-pager
