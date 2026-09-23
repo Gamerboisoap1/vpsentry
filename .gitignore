@@ -1,4 +1,6 @@
 .venv/
+.tools/
+.vpsentry-system-ready
 .env
 __pycache__/
 *.pyc

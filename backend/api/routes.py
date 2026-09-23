@@ -1,12 +1,11 @@
 import time
 from typing import Literal
-from fastapi import APIRouter, HTTPException, Query, Request, Depends
+from fastapi import APIRouter, HTTPException, Query, Request
 from backend.config import settings
 from backend.monitors.system import users
-from backend.services.auth import authorized
 from backend.services.score import score
 
-router = APIRouter(prefix='/api', dependencies=[Depends(authorized)])
+router = APIRouter(prefix='/api')
 
 def store(request):
     return request.app.state.store

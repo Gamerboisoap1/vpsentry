@@ -7,9 +7,9 @@ FastAPI, Python, SQLite, React, TypeScript, Tailwind CSS and Lucide, as requeste
 ## Users
 Linux VPS administrators monitoring their own Ubuntu/Debian machine.
 ## Product Purpose
-Install once, open port 8787, observe real security activity and host health.
+Run one foreground launcher, open port 8787, observe real security activity and host health, then stop it with Ctrl+C.
 ## Capabilities and Constraints
-Read-only SSH detection, passive inbound network detection, host metrics, ports, local users, persistent events. One web service and a separate least-privileged packet observer. No blocking, scanning other hosts, or account mutations. Simulation was removed at the user’s request before deployment.
+Read-only SSH detection, passive inbound network detection, host metrics, ports, local users, persistent events. No blocking, scanning other hosts, or account mutations. The public temporary dashboard intentionally has no login.
 ## Brand Commitments
 VPSentry. Responsive dark cybersecurity dashboard with restrained charcoal and mint, readable dense tables. User approved building directly in code.
 ## Product Principles

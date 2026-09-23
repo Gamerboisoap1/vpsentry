@@ -78,19 +78,7 @@ chown -R root:root "$RELEASE"
 chmod -R go-w "$RELEASE"
 
 if [[ ! -f "$CONFIG_DIR/vpsentry.env" ]]; then
-  # Password is generated in Python; it is never placed in argv or shell history.
-  (cd "$RELEASE" && VPSENTRY_CONFIG_DIR="$CONFIG_DIR" "$RELEASE/.venv/bin/python" - <<'PY'
-import os, secrets
-from pathlib import Path
-from backend.services.auth import hash_password
-config = Path(os.environ['VPSENTRY_CONFIG_DIR'])
-password = secrets.token_urlsafe(24)
-text = Path('.env.example').read_text().replace('VPSENTRY_PASSWORD_HASH=\n', 'VPSENTRY_PASSWORD_HASH=' + hash_password(password) + '\n')
-(config / 'vpsentry.env').write_text(text)
-(config / 'initial-credentials').write_text('Username: admin\nPassword: ' + password + '\n')
-os.chmod(config / 'initial-credentials', 0o600)
-PY
-  )
+  install -m 0640 -o root -g vpsentry "$RELEASE/.env.example" "$CONFIG_DIR/vpsentry.env"
 fi
 chown root:vpsentry "$CONFIG_DIR/vpsentry.env"
 chmod 0640 "$CONFIG_DIR/vpsentry.env"
@@ -99,8 +87,6 @@ chmod 0640 "$CONFIG_DIR/vpsentry.env"
 from backend.config import Settings
 from backend.models.store import Store
 config = Settings(_env_file='/etc/vpsentry/vpsentry.env')
-if not config.password_hash:
-    raise SystemExit('Missing VPSENTRY_PASSWORD_HASH in /etc/vpsentry/vpsentry.env')
 Store(config.data_dir)
 PY
 )
@@ -118,7 +104,7 @@ systemctl daemon-reload
 systemctl enable vpsentry.service vpsentry-network.service vpsentry-firewall.timer
 systemctl restart vpsentry.service vpsentry-network.service vpsentry-firewall.timer
 systemctl start vpsentry-firewall.service
-# Check the authenticated API locally without printing secrets or needing plaintext password.
+# Check the API locally.
 (cd "$RELEASE" && "$RELEASE/.venv/bin/python" - <<'PY'
 import time, urllib.request, urllib.error
 from backend.config import Settings
@@ -127,9 +113,9 @@ address = '[::1]' if config.host == '::1' else '127.0.0.1' if config.host in ('0
 for _ in range(30):
     try:
         urllib.request.urlopen(f'http://{address}:{config.port}/api/health', timeout=2)
-    except urllib.error.HTTPError as error:
-        if error.code == 401 and 'VPSentry' in error.headers.get('WWW-Authenticate', ''):
-            break
+        break
+    except urllib.error.HTTPError:
+        pass
     except OSError:
         pass
     time.sleep(1)
@@ -144,7 +130,4 @@ PORT="$(cd "$RELEASE" && "$RELEASE/.venv/bin/python" -c "from backend.config imp
 SERVER_IP="$(ip -4 route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") {print $(i+1); exit}}' || true)"
 SERVER_IP="${SERVER_IP:-YOUR_SERVER_IP}"
 printf '\n================================================\n             VPSentry Installed\n================================================\nStatus: Running\nService: vpsentry.service\nPort: %s\n\nDashboard:\nhttp://%s:%s\n\n' "$PORT" "$SERVER_IP" "$PORT"
-if [[ -f "$CONFIG_DIR/initial-credentials" ]]; then
-  printf 'Administrator credentials: sudo cat /etc/vpsentry/initial-credentials\n'
-fi
-printf '\nUse HTTPS or an SSH tunnel on untrusted networks; HTTP does not encrypt credentials.\nNo firewall rules were opened or changed.\n\nUseful commands:\nsudo systemctl status vpsentry\nsudo systemctl restart vpsentry\nsudo systemctl stop vpsentry\njournalctl -u vpsentry -f\n================================================\n'
+printf '\nNo login is required. Stop the service when you are finished.\nNo firewall rules were opened or changed.\n\nUseful commands:\nsudo systemctl status vpsentry\nsudo systemctl restart vpsentry\nsudo systemctl stop vpsentry\njournalctl -u vpsentry -f\n================================================\n'

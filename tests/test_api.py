@@ -4,13 +4,11 @@ from fastapi.testclient import TestClient
 from backend.config import settings
 from backend.main import app
 from backend.models.store import Store
-from backend.services.auth import hash_password
 from backend.monitors import system
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, 'host', '127.0.0.1')
-    monkeypatch.setattr(settings, 'password_hash', '')
     monkeypatch.setattr(settings, 'data_dir', tmp_path)
     with TestClient(app) as client:
         for _ in range(40):
@@ -32,7 +30,7 @@ def test_production_routes(client,path):
     assert '<div id="root">' in response.text
     assert 'text/html' in response.headers['content-type']
 
-def test_validation_auth_and_removed_simulation(client,monkeypatch):
+def test_validation_and_removed_simulation(client):
     assert client.get('/api/events?limit=9999').status_code==422
     assert client.get('/api/events?severity=invalid').status_code==422
     assert client.get('/api/events?offset=-1').status_code==422
@@ -42,11 +40,8 @@ def test_validation_auth_and_removed_simulation(client,monkeypatch):
     assert client.get('/api/events?demo=true').json()['total']==client.get('/api/events').json()['total']
     assert all(not event['demo'] for event in client.get('/api/events?demo=true').json()['items'])
     assert client.get('/api/scans').json()['scans_24h']==0
-    monkeypatch.setattr(settings,'password_hash',hash_password('a-valid-test-password'))
-    assert client.get('/api/stats').status_code==401
-    assert client.get('/ssh').status_code==401
-    assert client.get('/api/stats',auth=('admin','wrong')).status_code==401
-    assert client.get('/api/stats',auth=('admin','a-valid-test-password')).status_code==200
+    assert client.get('/api/stats').status_code==200
+    assert client.get('/ssh').status_code==200
 
 
 def test_real_metrics(client):
@@ -63,23 +58,11 @@ def test_stale_monitor(client):
     assert client.get('/api/health').json()['monitors']['network']['state']=='unavailable'
 
 
-def test_refuse_unauthenticated_public_bind(monkeypatch,tmp_path):
+def test_public_bind_without_login(monkeypatch,tmp_path):
     monkeypatch.setattr(settings,'host','0.0.0.0')
-    monkeypatch.setattr(settings,'password_hash','')
     monkeypatch.setattr(settings,'data_dir',tmp_path)
-    with pytest.raises(RuntimeError,match='before binding publicly'):
-        with TestClient(app):
-            pass
-
-
-def test_failed_auth_throttling(client,monkeypatch):
-    from backend.services.auth import failures, verified
-    failures.clear();verified.clear()
-    monkeypatch.setattr(settings,'password_hash',hash_password('new-valid-test-password'))
-    for _ in range(10):
-        assert client.get('/api/health',auth=('admin','incorrect')).status_code==401
-    assert client.get('/api/health',auth=('admin','incorrect')).status_code==429
-    failures.clear();verified.clear()
+    with TestClient(app) as public_client:
+        assert public_client.get('/api/health').status_code == 200
 
 
 def test_map_excludes_demo_and_geoip_validates_ip(client):

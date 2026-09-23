@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+cd "$PROJECT_DIR"
+
+if [[ "$(uname -s)" != "Linux" ]]; then
+  printf 'VPSentry RUN is intended for a Linux VPS.\n' >&2
+  exit 1
+fi
+
+if [[ "$EUID" -ne 0 ]]; then
+  printf 'Run this command so VPSentry can read SSH logs and watch network traffic:\n\n  sudo ./RUN\n\n' >&2
+  exit 1
+fi
+
+if ! command -v apt-get >/dev/null 2>&1; then
+  printf 'This simple launcher supports Ubuntu and Debian VPS servers.\n' >&2
+  exit 1
+fi
+
+if [[ ! -f .vpsentry-system-ready ]]; then
+  printf 'Checking Linux tools...\n'
+  apt-get update
+  apt-get install -y python3 python3-venv python3-pip build-essential ca-certificates curl xz-utils
+  touch .vpsentry-system-ready
+fi
+
+if [[ ! -x .venv/bin/python ]]; then
+  printf 'Preparing Python...\n'
+  python3 -m venv .venv
+fi
+
+case "$(uname -m)" in
+  x86_64) node_arch=x64 ;;
+  aarch64|arm64) node_arch=arm64 ;;
+  *) printf 'VPSentry supports x86_64 and arm64 VPS servers.\n' >&2; exit 1 ;;
+esac
+node_version=22.23.2
+node_dir="$PROJECT_DIR/.tools/node-v$node_version-linux-$node_arch"
+if [[ ! -x "$node_dir/bin/node" ]]; then
+  printf 'Downloading the website builder...\n'
+  mkdir -p .tools
+  archive="node-v$node_version-linux-$node_arch.tar.xz"
+  curl --fail --location --retry 3 --proto '=https' --tlsv1.2 "https://nodejs.org/dist/v$node_version/$archive" -o ".tools/$archive"
+  curl --fail --location --retry 3 --proto '=https' --tlsv1.2 "https://nodejs.org/dist/v$node_version/SHASUMS256.txt" -o .tools/SHASUMS256.txt
+  (cd .tools && awk -v name="$archive" '$2 == name {print}' SHASUMS256.txt > selected.sha256 && test -s selected.sha256 && sha256sum -c selected.sha256)
+  tar -xJf ".tools/$archive" -C .tools --no-same-owner
+  rm -f ".tools/$archive" .tools/SHASUMS256.txt .tools/selected.sha256
+fi
+export PATH="$node_dir/bin:$PATH"
+
+if [[ ! -f .venv/.vpsentry-ready || requirements.txt -nt .venv/.vpsentry-ready ]]; then
+  .venv/bin/pip install --disable-pip-version-check -r requirements.txt
+  touch .venv/.vpsentry-ready
+fi
+
+if [[ ! -f frontend/dist/index.html ]] || [[ -n "$(find frontend/src -type f -newer frontend/dist/index.html -print -quit 2>/dev/null)" ]] || [[ frontend/package-lock.json -nt frontend/dist/index.html ]]; then
+  printf 'Building the website...\n'
+  "$node_dir/bin/npm" --prefix frontend ci --no-audit --no-fund
+  "$node_dir/bin/npm" --prefix frontend run build
+fi
+
+mkdir -p data
+export VPSENTRY_HOST=0.0.0.0
+export VPSENTRY_PORT=8787
+export VPSENTRY_DATA_DIR="$PROJECT_DIR/data"
+export VPSENTRY_FRONTEND_DIR="$PROJECT_DIR/frontend/dist"
+export PYTHONDONTWRITEBYTECODE=1
+
+network_pid=''
+stop_all() {
+  if [[ -n "$network_pid" ]]; then
+    kill "$network_pid" 2>/dev/null || true
+    wait "$network_pid" 2>/dev/null || true
+  fi
+}
+trap stop_all EXIT INT TERM
+
+.venv/bin/python -m backend.monitors.firewall >/dev/null 2>&1 || true
+.venv/bin/python -m backend.monitors.network &
+network_pid=$!
+
+server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+server_ip="${server_ip:-SERVER_IP}"
+printf '\nVPSentry is running.\nOpen: http://%s:8787\nPress Ctrl+C to stop it.\n\n' "$server_ip"
+
+.venv/bin/python -m backend

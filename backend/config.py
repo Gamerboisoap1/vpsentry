@@ -10,8 +10,6 @@ class Settings(BaseSettings):
     port: int = Field(8787, ge=1, le=65535)
     data_dir: Path = ROOT / 'data'
     frontend_dir: Path = ROOT / 'frontend/dist'
-    admin_user: str = 'admin'
-    password_hash: str = ''
     geoip_enabled: bool = True
     geoip_daily_limit: int = Field(500, ge=1, le=1000)
     ssh_source: str = 'journal'

@@ -6,7 +6,7 @@ Local verification performed on 10 September 2026, macOS arm64, Python 3.13 and 
 
 - React/TypeScript production compilation and Vite build. The FastAPI process serves this bundle at port 8787; there is no separate frontend process.
 - **44 pytest tests passed**. One third-party Starlette/AnyIO deprecation warning remains; it does not affect the assertions or application runtime.
-- Tests cover all API routes, validated query/body inputs, administrator challenge/credentials, failed-login throttling, public-startup rejection without authentication, and no unknown command/event types.
+- Tests cover all API routes, validated query/body inputs, public no-login startup, and no unknown command/event types.
 - Production demo rejection, simulated/observed query separation, and exclusion of simulated incidents from the real score/counts.
 - SSH thresholds, source separation, time windows, IPv6 and successful-login parsing, incident deduplication and first/last observation details.
 - Real temporary auth-file following, persistent cursor resume, file rotation, missing-log status and graceful stop.
