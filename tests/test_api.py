@@ -17,13 +17,13 @@ def client(tmp_path, monkeypatch):
             time.sleep(.05)
         yield client
 
-@pytest.mark.parametrize('path',['/api/health','/api/stats','/api/events','/api/events/recent','/api/ssh','/api/scans','/api/ports','/api/users','/api/security-score','/api/activity','/api/attack-map','/api/geoip?ip=192.0.2.1'])
+@pytest.mark.parametrize('path',['/api/health','/api/stats','/api/events','/api/events/recent','/api/ssh','/api/scans','/api/ports','/api/users','/api/security-score','/api/defense','/api/activity','/api/attack-map','/api/geoip?ip=192.0.2.1'])
 def test_endpoints(client,path):
     response=client.get(path)
     assert response.status_code==200
     assert response.headers['cache-control']=='no-store'
 
-@pytest.mark.parametrize('path',['/','/ssh','/network','/ports','/users','/activity','/attack-map'])
+@pytest.mark.parametrize('path',['/','/ssh','/network','/defense','/ports','/users','/activity','/attack-map'])
 def test_production_routes(client,path):
     response=client.get(path)
     assert response.status_code==200

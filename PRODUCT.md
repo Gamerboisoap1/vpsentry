@@ -9,7 +9,7 @@ Linux VPS administrators monitoring their own Ubuntu/Debian machine.
 ## Product Purpose
 Run one foreground launcher, open port 8787, observe real security activity and host health, then stop it with Ctrl+C.
 ## Capabilities and Constraints
-Read-only SSH detection, passive inbound network detection, host metrics, ports, local users, persistent events. No blocking, scanning other hosts, or account mutations. The public temporary dashboard intentionally has no login.
+Read-only SSH detection, passive inbound network detection, host metrics, ports, local users, persistent events, security hardening checks, configurable file integrity monitoring, and suspicious process detection. No blocking, scanning other hosts, or account mutations. The public temporary dashboard intentionally has no login.
 ## Brand Commitments
 VPSentry. Responsive dark cybersecurity dashboard with restrained charcoal and mint, readable dense tables. User approved building directly in code.
 ## Product Principles

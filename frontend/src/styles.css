@@ -1090,6 +1090,83 @@ footer span:first-child {
 main > .panel + .panel {
   margin-top: 24px;
 }
+.defense-checklist {
+  border-top: 1px solid var(--line);
+}
+.defense-check {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 17px 21px;
+  border-bottom: 1px solid var(--line);
+}
+.defense-check:last-child {
+  border-bottom: 0;
+}
+.defense-check strong {
+  font-size: 12px;
+  font-weight: 520;
+}
+.defense-check p {
+  color: var(--muted);
+  font-size: 10px;
+  margin-top: 4px;
+}
+.defense-check small {
+  display: block;
+  color: #d4bd8f;
+  font-size: 9px;
+  margin-top: 6px;
+}
+.check-symbol {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+}
+.check-symbol.pass {
+  color: var(--green);
+  background: #20382c;
+}
+.check-symbol.warn {
+  color: var(--amber);
+  background: #3a3021;
+}
+.check-symbol.unknown {
+  color: var(--muted);
+  background: #282e2c;
+}
+.file-name,
+.process-name {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.file-name svg,
+.process-name > svg {
+  color: #a9c9b4;
+  flex: 0 0 auto;
+}
+.process-name strong {
+  font-weight: 520;
+}
+.defense-footnote {
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+@media (max-width: 520px) {
+  .defense-check {
+    grid-template-columns: 32px minmax(0, 1fr);
+  }
+  .defense-check > .badge {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
 .table-toolbar {
   padding: 4px 20px 20px;
 }

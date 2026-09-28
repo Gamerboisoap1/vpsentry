@@ -6,6 +6,7 @@ from backend.monitors import system
 from backend.monitors.detection import Detector
 from backend.monitors.ssh import SSHMonitor
 from backend.services.geoip import GeoIP
+from backend.monitors.defense import DefenseMonitor
 
 log = logging.getLogger(__name__)
 
@@ -15,11 +16,12 @@ class Runtime:
         self.stop = threading.Event()
         self.ssh = SSHMonitor(store, settings, Detector(store, settings), self.stop)
         self.geoip = GeoIP(store, settings, self.stop)
+        self.defense = DefenseMonitor(store, settings, self.stop)
         self.threads = []
 
     def start(self):
         self.store.event('SERVICE_STARTED', 'System', 'INFO', 'VPSentry service started')
-        for target in (self.sample, self.ssh.run, self.geoip.run):
+        for target in (self.sample, self.ssh.run, self.geoip.run, self.defense.run):
             thread = threading.Thread(target=target, daemon=True)
             thread.start()
             self.threads.append(thread)

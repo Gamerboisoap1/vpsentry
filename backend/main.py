@@ -33,7 +33,7 @@ if (settings.frontend_dir / 'assets').is_dir():
 
 @app.get('/{path:path}')
 def frontend(path: str):
-    if path.startswith('api/') or path not in ('', 'ssh', 'network', 'ports', 'users', 'activity', 'attack-map'):
+    if path.startswith('api/') or path not in ('', 'ssh', 'network', 'defense', 'ports', 'users', 'activity', 'attack-map'):
         raise HTTPException(404, 'Not found')
     index = settings.frontend_dir / 'index.html'
     if not index.is_file():

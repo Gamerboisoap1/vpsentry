@@ -29,6 +29,9 @@ import {
   LockKeyhole,
   Globe,
   SlidersHorizontal,
+  ShieldCheck,
+  FileWarning,
+  Bug,
 } from "lucide-react";
 import {
   useApi,
@@ -48,6 +51,7 @@ import {
   type User,
   type Monitor,
   type Sample,
+  type Defense,
 } from "./api";
 
 const navigation = [
@@ -55,6 +59,7 @@ const navigation = [
   ["/ssh", "SSH Security", Terminal],
   ["/network", "Network Scans", Radar],
   ["/attack-map", "Attack Map", Globe],
+  ["/defense", "Defense", ShieldCheck],
   ["/ports", "Open Ports", Network],
   ["/users", "System Users", Users],
   ["/activity", "Activity Log", History],
@@ -831,6 +836,110 @@ function PortsPage({ health }: { health?: Health }) {
     </>
   );
 }
+function DefensePage() {
+  const defense = useApi<Defense>("/defense", 10000);
+  const checks = defense.data?.checklist.items ?? [];
+  const files = defense.data?.files.items ?? [];
+  const processes = defense.data?.processes.items ?? [];
+  const passed = checks.filter((item) => item.status === "pass").length;
+  return (
+    <>
+      <div className="notice defense-intro">
+        <ShieldCheck size={20} />
+        <div>
+          <strong>Read-only defense checks</strong>
+          <p>
+            VPSentry checks hardening, watches file fingerprints, and flags
+            unusual processes. It never changes configuration or stops a process.
+          </p>
+        </div>
+        <State status={defense.data?.status} />
+      </div>
+      {defense.error && (
+        <ErrorBox message={defense.error} onRetry={defense.refresh} />
+      )}
+      {!defense.data ? (
+        <Loading />
+      ) : (
+        <>
+          <Panel
+            title="Security checklist"
+            extra={<Badge tone={passed === checks.length && checks.length ? "green" : "amber"}>{passed}/{checks.length} passed</Badge>}
+          >
+            <div className="defense-checklist">
+              {checks.length ? checks.map((item) => (
+                <div className="defense-check" key={item.id}>
+                  <span className={`check-symbol ${item.status}`} aria-hidden="true">
+                    {item.status === "pass" ? <Check size={16} /> : item.status === "warn" ? <TriangleAlert size={16} /> : <CircleHelp size={16} />}
+                  </span>
+                  <div>
+                    <strong>{item.label}</strong>
+                    <p>{item.detail}</p>
+                    {item.status !== "pass" && <small>{item.recommendation}</small>}
+                  </div>
+                  <Badge tone={item.status === "pass" ? "green" : item.status === "warn" ? "amber" : "neutral"}>
+                    {item.status === "pass" ? "Passed" : item.status === "warn" ? "Review" : "Unknown"}
+                  </Badge>
+                </div>
+              )) : <Empty>Defense checks are starting. Refresh in a few seconds.</Empty>}
+            </div>
+          </Panel>
+          <Panel
+            title="File-change monitoring"
+            extra={<Badge>{files.length} watched</Badge>}
+          >
+            {files.length ? (
+              <div className="table-scroll">
+                <table>
+                  <thead><tr><th>File</th><th>State</th><th>Permissions</th><th>Last checked</th></tr></thead>
+                  <tbody>
+                    {files.map((file) => (
+                      <tr key={file.path}>
+                        <td><span className="file-name"><FileWarning size={15} /><span className="mono">{file.path}</span></span></td>
+                        <td><Badge tone={file.changed ? "red" : file.status === "ok" ? "green" : "amber"}>{file.changed ? "Changed" : file.status === "ok" ? "Unchanged" : file.status}</Badge><small className="cell-note">{file.message ?? `Baseline ${file.baseline}`}</small></td>
+                        <td className="mono muted">{file.mode ?? "—"}</td>
+                        <td className="mono muted">{time(file.last_checked)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <Empty>No valid watch paths are configured.</Empty>}
+            <p className="defense-footnote">
+              Watch any regular file by adding its absolute path to <span className="mono">VPSENTRY_WATCH_FILES</span>, separated by commas, before starting VPSentry.
+            </p>
+          </Panel>
+          <Panel
+            title="Suspicious processes"
+            extra={<Badge tone={processes.length ? "red" : "green"}>{processes.length ? `${processes.length} flagged` : "No findings"}</Badge>}
+          >
+            {processes.length ? (
+              <div className="table-scroll">
+                <table>
+                  <thead><tr><th>Process</th><th>Reason</th><th>CPU</th><th>Memory</th><th>User</th></tr></thead>
+                  <tbody>
+                    {processes.map((process) => (
+                      <tr key={process.pid}>
+                        <td><span className="process-name"><Bug size={15} /><span><strong>{process.name}</strong><small className="cell-note mono">PID {process.pid} · {process.executable || "Path unavailable"}</small></span></span></td>
+                        <td>{process.reasons.join("; ")}</td>
+                        <td className="mono">{process.cpu.toFixed(1)}%</td>
+                        <td className="mono">{process.memory.toFixed(1)}%</td>
+                        <td className="mono muted">{process.username ?? "Unknown"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : <Empty>No process currently crosses the configured risk rules.</Empty>}
+            <p className="defense-footnote">
+              Flags CPU ≥ {defense.data.configuration.cpu_threshold}%, memory ≥ {defense.data.configuration.memory_threshold}%, deleted executables, and programs running from temporary directories.
+            </p>
+          </Panel>
+        </>
+      )}
+    </>
+  );
+}
 function UsersPage() {
   const users = useApi<{ items: User[] }>("/users", 30000);
   const [q, setQ] = useState("");
@@ -1122,6 +1231,7 @@ export default function App() {
     "/ssh": "SSH security",
     "/network": "Network scans",
     "/attack-map": "Attack map",
+    "/defense": "Defense",
     "/ports": "Open ports",
     "/users": "System users",
     "/activity": "Activity log",
@@ -1132,6 +1242,7 @@ export default function App() {
     "/network": "Understand inbound probing across your server’s ports.",
     "/attack-map":
       "Explore the countries and networks behind detected attack sources.",
+    "/defense": "Check basic hardening and investigate local changes.",
     "/ports": "See which services are listening on your server.",
     "/users": "Inspect local accounts and their login shell capabilities.",
     "/activity": "Every signal, in one persistent timeline.",
@@ -1354,6 +1465,8 @@ export default function App() {
             />
           ) : location.pathname === "/ports" ? (
             <PortsPage health={health.data} />
+          ) : location.pathname === "/defense" ? (
+            <DefensePage />
           ) : location.pathname === "/users" ? (
             <UsersPage />
           ) : location.pathname === "/activity" ? (

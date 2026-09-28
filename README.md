@@ -1,6 +1,6 @@
 # VPSentry
 
-VPSentry is a small Linux VPS security and health dashboard. It shows system load, SSH activity, listening ports, suspicious port scans, recent events and an approximate GeoIP attack map.
+VPSentry is a small Linux VPS security and health dashboard. It shows system load, SSH activity, listening ports, suspicious port scans, defense checks, recent events and an approximate GeoIP attack map.
 
 ## Run it on your VPS
 
@@ -41,6 +41,17 @@ sudo ./RUN
 - Uses root so it can read SSH logs, inspect firewall state and passively observe incoming connection attempts.
 - Stores observations in `data/vpsentry.db` so they remain available next time.
 - Sends public attack-source IPs to `ipwho.is` for approximate GeoIP data. Set `VPSENTRY_GEOIP_ENABLED=false` before running if you do not want that lookup.
+- Checks firewall, Fail2ban, effective SSH hardening and available security updates.
+- Watches SHA-256 fingerprints for `/etc/ssh/sshd_config`, `/etc/passwd` and `/etc/sudoers` by default.
+- Flags processes with very high CPU or memory, deleted executables, or executables under `/tmp`, `/var/tmp` and `/dev/shm`.
+
+To watch any regular file, provide comma-separated absolute paths before starting:
+
+```bash
+sudo VPSENTRY_WATCH_FILES=/etc/ssh/sshd_config,/etc/passwd,/path/to/another/file ./RUN
+```
+
+The first observation creates a baseline. Later content, metadata, deletion or availability changes create an activity event. Files above 100 MB are skipped.
 
 ## Temporary dashboard warning
 

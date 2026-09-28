@@ -69,6 +69,21 @@ def system_users():
 def security_score(request: Request):
     return score(store(request), settings)
 
+@router.get('/defense')
+def defense(request: Request):
+    db = store(request)
+    return {
+        'status': db.get('defense_status', {'state': 'unavailable', 'message': 'Waiting for defense checks', 'updated': 0}),
+        'checklist': db.get('defense_checklist', {'updated': 0, 'items': []}),
+        'files': db.get('file_integrity', {'updated': 0, 'items': []}),
+        'processes': db.get('suspicious_processes', {'updated': 0, 'items': []}),
+        'configuration': {
+            'watch_files': [path.strip() for path in settings.watch_files.split(',') if path.strip()],
+            'cpu_threshold': settings.process_cpu_threshold,
+            'memory_threshold': settings.process_memory_threshold,
+        },
+    }
+
 
 
 @router.get('/attack-map')

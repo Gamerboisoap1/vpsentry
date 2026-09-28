@@ -76,6 +76,43 @@ export type Scans = {
   scans_24h: number;
   incidents: Event[];
 };
+export type DefenseCheck = {
+  id: string;
+  label: string;
+  status: "pass" | "warn" | "unknown";
+  detail: string;
+  recommendation: string;
+};
+export type WatchedFile = {
+  path: string;
+  status: string;
+  changed: boolean;
+  last_checked: number;
+  baseline: string;
+  message?: string;
+  size?: number;
+  mode?: string;
+};
+export type SuspiciousProcess = {
+  pid: number;
+  name: string;
+  username: string | null;
+  executable: string;
+  cpu: number;
+  memory: number;
+  reasons: string[];
+};
+export type Defense = {
+  status: Monitor;
+  checklist: { updated: number; items: DefenseCheck[] };
+  files: { updated: number; items: WatchedFile[] };
+  processes: { updated: number; items: SuspiciousProcess[] };
+  configuration: {
+    watch_files: string[];
+    cpu_threshold: number;
+    memory_threshold: number;
+  };
+};
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch("/api" + path, {
     credentials: "same-origin",
