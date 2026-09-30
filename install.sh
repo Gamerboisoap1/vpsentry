@@ -75,6 +75,10 @@ runuser -u vpsentry -- env PATH="$NODE_DIRECTORY/bin:/usr/bin:/bin" npm --prefix
 # Validate imports and bytecode before replacing the running release.
 runuser -u vpsentry -- "$RELEASE/.venv/bin/python" -m compileall -q "$RELEASE/backend"
 chown -R root:root "$RELEASE"
+# The service user needs to traverse the root-owned release and read compiled
+# Python wheels. Keep releases immutable while granting runtime read/execute
+# access to the application files.
+chmod -R a+rX "$RELEASE"
 chmod -R go-w "$RELEASE"
 
 if [[ ! -f "$CONFIG_DIR/vpsentry.env" ]]; then
