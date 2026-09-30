@@ -1215,14 +1215,6 @@ export default function App() {
     stats = useApi<Stats>("/stats");
   const [menu, setMenu] = useState(false),
     [selected, setSelected] = useState<Event | null>(null);
-  const [testAlert, setTestAlert] = useState(false);
-  const hasLiveAttack = !!health.data?.active_alerts?.total;
-  useEffect(() => {
-    if (hasLiveAttack) setTestAlert(false);
-    if (!testAlert) return;
-    const timer = window.setTimeout(() => setTestAlert(false), 20000);
-    return () => window.clearTimeout(timer);
-  }, [testAlert, hasLiveAttack]);
   const closeDetails = useCallback(() => setSelected(null), []);
   const page =
     navigation.find((n) => n[0] === location.pathname)?.[1] ?? "Page not found";
@@ -1309,38 +1301,6 @@ export default function App() {
         />
       )}
       <div className="main-shell">
-        {testAlert && !hasLiveAttack && (
-          <section
-            className="attack-alert"
-            role="alert"
-            aria-label="Simulated security alert"
-          >
-            <TriangleAlert size={24} aria-hidden="true" />
-            <div className="attack-alert-content">
-              <strong>SIMULATION — test attack alert</strong>
-              <p>
-                This is only a visual preview. No attack was detected, and no
-                security data is changed. Clears after 20 seconds.
-              </p>
-              <div className="attack-alert-incidents">
-                <span>
-                  Example SSH brute force ·{" "}
-                  <span className="mono">192.0.2.42</span>
-                </span>
-                <span>
-                  Example port scan ·{" "}
-                  <span className="mono">198.51.100.24</span>
-                </span>
-              </div>
-            </div>
-            <button
-              className="attack-alert-link"
-              onClick={() => setTestAlert(false)}
-            >
-              End simulation <X size={16} />
-            </button>
-          </section>
-        )}
         {!!health.data?.active_alerts?.total && (
           <section
             className="attack-alert"
@@ -1419,19 +1379,6 @@ export default function App() {
             </div>
             <div className="refresh-group">
               <span className="muted small">Refreshes every 5s</span>
-              <button
-                className="subtle-button test-alert-button"
-                disabled={hasLiveAttack}
-                onClick={() => setTestAlert((value) => !value)}
-                title={
-                  hasLiveAttack
-                    ? "A real attack alert is already active"
-                    : "Preview the alert banner without changing security data"
-                }
-              >
-                <TriangleAlert size={14} />
-                {testAlert ? "End test" : "Test alert"}
-              </button>
               <button
                 className="subtle-button"
                 onClick={refreshAll}

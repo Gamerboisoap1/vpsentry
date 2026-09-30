@@ -44,6 +44,7 @@ sudo ./RUN
 - Checks firewall, Fail2ban, effective SSH hardening and available security updates.
 - Watches SHA-256 fingerprints for `/etc/ssh/sshd_config`, `/etc/passwd` and `/etc/sudoers` by default.
 - Flags processes with very high CPU or memory, deleted executables, or executables under `/tmp`, `/var/tmp` and `/dev/shm`.
+- Raises the flashing attack alert only after more than five failed SSH attempts from one source within the configured window (six by default).
 
 To watch any regular file, provide comma-separated absolute paths before starting:
 

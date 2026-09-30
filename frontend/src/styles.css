@@ -1828,9 +1828,6 @@ main > .panel + .panel {
   font-size: 11px;
 }
 @media (max-width: 520px) {
-  .refresh-group .test-alert-button {
-    font-size: 10px;
-  }
   .refresh-group {
     gap: 7px;
   }
