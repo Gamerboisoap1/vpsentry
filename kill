@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+PID_FILE="$PROJECT_DIR/data/vpsentry.pid"
+if [[ -f "$PID_FILE" ]]; then
+  pid="$(cat "$PID_FILE")"
+  sudo kill -KILL -- "-$pid" 2>/dev/null || sudo kill -KILL "$pid" 2>/dev/null || true
+  rm -f "$PID_FILE"
+fi
+printf 'VPSentry force-stopped.\n'
+
