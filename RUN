@@ -62,6 +62,7 @@ if [[ ! -f frontend/dist/index.html ]] || [[ -n "$(find frontend/src -type f -ne
 fi
 
 mkdir -p data
+mkdir -p VAULT
 export VPSENTRY_HOST=0.0.0.0
 export VPSENTRY_PORT=8787
 export VPSENTRY_DATA_DIR="$PROJECT_DIR/data"

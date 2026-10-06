@@ -347,6 +347,10 @@ function Overview({
             <div className="score-title">
               <Shield size={17} />
               <h2>VPSentry Security Score</h2>
+              <Link to="/defense" className="subtle-button defense-link">
+                <ShieldCheck size={14} />
+                Defense checks
+              </Link>
               <button
                 className="icon-button"
                 aria-label="Explain security score"
@@ -842,6 +846,13 @@ function DefensePage() {
   const files = defense.data?.files.items ?? [];
   const processes = defense.data?.processes.items ?? [];
   const passed = checks.filter((item) => item.status === "pass").length;
+  const checkExplanations: Record<string, string> = {
+    firewall: "Reads the VPS firewall status using the available Linux firewall tools.",
+    fail2ban: "Checks systemd to see whether the Fail2ban service is currently active.",
+    ssh_root: "Reads the effective SSH configuration and checks whether direct root login is disabled.",
+    ssh_password: "Reads the effective SSH configuration and checks whether password authentication is disabled.",
+    updates: "Asks the package manager for available updates and highlights security updates.",
+  };
   return (
     <>
       <div className="notice defense-intro">
@@ -875,6 +886,7 @@ function DefensePage() {
                   <div>
                     <strong>{item.label}</strong>
                     <p>{item.detail}</p>
+                    <small>{checkExplanations[item.id]}</small>
                     {item.status !== "pass" && <small>{item.recommendation}</small>}
                   </div>
                   <Badge tone={item.status === "pass" ? "green" : item.status === "warn" ? "amber" : "neutral"}>
@@ -906,7 +918,7 @@ function DefensePage() {
               </div>
             ) : <Empty>No valid watch paths are configured.</Empty>}
             <p className="defense-footnote">
-              Watch any regular file by adding its absolute path to <span className="mono">VPSENTRY_WATCH_FILES</span>, separated by commas, before starting VPSentry.
+              The built-in <span className="mono">VAULT/</span> folder is watched automatically. Put files there and VPSentry alerts when they are added, changed, or deleted. System files can still be added with <span className="mono">VPSENTRY_WATCH_FILES</span>.
             </p>
           </Panel>
           <Panel
@@ -932,7 +944,7 @@ function DefensePage() {
               </div>
             ) : <Empty>No process currently crosses the configured risk rules.</Empty>}
             <p className="defense-footnote">
-              Flags CPU ≥ {defense.data.configuration.cpu_threshold}%, memory ≥ {defense.data.configuration.memory_threshold}%, deleted executables, and programs running from temporary directories.
+              Flags processes using at least {defense.data.configuration.cpu_threshold}% CPU or {defense.data.configuration.memory_threshold}% memory.
             </p>
           </Panel>
         </>

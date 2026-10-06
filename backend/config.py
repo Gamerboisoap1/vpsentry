@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     retention_days: int = Field(30, ge=1, le=3650)
     suspicious_ports: str = '23,3389,6379,27017'
     watch_files: str = '/etc/ssh/sshd_config,/etc/passwd,/etc/sudoers'
+    vault_dir: Path = ROOT / 'VAULT'
     defense_seconds: int = Field(30, ge=10, le=3600)
     process_cpu_threshold: float = Field(85, ge=1, le=100)
     process_memory_threshold: float = Field(50, ge=1, le=100)

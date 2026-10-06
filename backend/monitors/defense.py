@@ -108,6 +108,18 @@ def watched_paths(settings):
         value = raw.strip()
         if value and os.path.isabs(value) and value not in paths:
             paths.append(value)
+    # VAULT is a built-in watch folder. Every regular file placed inside it
+    # is monitored automatically, including nested folders.
+    vault = Path(settings.vault_dir)
+    try:
+        vault.mkdir(parents=True, exist_ok=True)
+        for target in sorted(vault.rglob('*')):
+            if target.is_file() and not target.is_symlink():
+                value = str(target)
+                if value not in paths:
+                    paths.append(value)
+    except OSError:
+        pass
     return paths[:50]
 
 
@@ -146,6 +158,14 @@ def inspect_files(store, settings, now=None):
                         details={'path': path, 'previous': previous, 'current': fingerprint})
         rows.append({'path': path, **fingerprint, 'changed': changed, 'last_checked': now,
                      'baseline': 'updated' if changed else 'created' if previous is None else 'matched'})
+    # Detect files added to or removed from the built-in VAULT folder.
+    previous_paths = {path for path in baseline if path.startswith(str(settings.vault_dir) + os.sep)}
+    current_paths = {path for path in current if path.startswith(str(settings.vault_dir) + os.sep)}
+    for path in sorted(current_paths - previous_paths):
+        if baseline:
+            store.event('FILE_ADDED', 'System', 'HIGH', f'New VAULT file detected: {path}', details={'path': path})
+    for path in sorted(previous_paths - current_paths):
+        store.event('FILE_DELETED', 'System', 'HIGH', f'VAULT file deleted: {path}', details={'path': path})
     store.set('file_integrity_baseline', current)
     store.set('file_integrity', {'updated': now, 'items': rows})
     return rows
@@ -172,11 +192,6 @@ def inspect_processes(store, settings, now=None):
                 reasons.append(f'CPU usage {cpu:.1f}%')
             if memory >= settings.process_memory_threshold:
                 reasons.append(f'memory usage {memory:.1f}%')
-            if executable.endswith(' (deleted)'):
-                reasons.append('executable was deleted while still running')
-            clean_executable = executable.removesuffix(' (deleted)')
-            if any(clean_executable.startswith(directory) for directory in RISKY_DIRECTORIES):
-                reasons.append('running from a temporary directory')
             if not reasons:
                 continue
             key = f"{process.pid}:{'|'.join(sorted(reasons))}"
