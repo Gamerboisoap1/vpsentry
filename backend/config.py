@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ssh_source: str = 'journal'
     auth_log: Path = Path('/var/log/auth.log')
     ssh_threshold: int = Field(2, ge=2, le=4096)
-    ssh_window: int = Field(15, ge=1, le=3600)
+    ssh_window: int = Field(60, ge=1, le=3600)
     scan_threshold: int = Field(1, ge=1, le=4096)
     scan_window: int = Field(60, ge=1, le=3600)
     sample_seconds: int = Field(5, ge=2, le=300)
