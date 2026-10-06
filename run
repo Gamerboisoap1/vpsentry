@@ -9,25 +9,29 @@ LOG_FILE="$PROJECT_DIR/data/vpsentry.log"
 mkdir -p "$PROJECT_DIR/data"
 
 if [[ "${1:-}" != "--service" ]]; then
+  # Get elevated permissions while the user still has a terminal available.
+  # The detached service then runs as root directly and never prompts sudo.
+  if [[ "$EUID" -ne 0 ]]; then
+    sudo -v
+    exec sudo "$PROJECT_DIR/run" --launch
+  fi
+
   if [[ -f "$PID_FILE" ]]; then
     old_pid="$(cat "$PID_FILE")"
-    if sudo kill -0 "$old_pid" 2>/dev/null; then
+    if kill -0 "$old_pid" 2>/dev/null; then
       printf 'VPSentry is already running (PID %s).\n' "$old_pid"
       exit 0
     fi
     rm -f "$PID_FILE"
   fi
 
-  if [[ "$EUID" -ne 0 ]]; then
-    sudo -v
-  fi
-  nohup setsid --fork sudo -n "$PROJECT_DIR/run" --service </dev/null >>"$LOG_FILE" 2>&1 &
+  nohup setsid --fork "$PROJECT_DIR/run" --service </dev/null >>"$LOG_FILE" 2>&1 &
   service_pid=$!
   echo "$service_pid" >"$PID_FILE"
   service_group=''
   for _ in {1..10}; do
     recorded_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
-    if [[ -n "$recorded_pid" && "$recorded_pid" != "$service_pid" ]] && sudo kill -0 "$recorded_pid" 2>/dev/null; then
+    if [[ -n "$recorded_pid" && "$recorded_pid" != "$service_pid" ]] && kill -0 "$recorded_pid" 2>/dev/null; then
       service_group="$recorded_pid"
       break
     fi

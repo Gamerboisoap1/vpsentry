@@ -26,5 +26,5 @@ fi
 if command -v fuser >/dev/null 2>&1; then
   sudo fuser -k 8787/tcp 2>/dev/null || true
 fi
-rm -f "$PID_FILE"
+sudo rm -f "$PID_FILE"
 printf 'VPSentry and its monitor processes are stopped.\n'
