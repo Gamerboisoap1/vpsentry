@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     geoip_daily_limit: int = Field(500, ge=1, le=1000)
     ssh_source: str = 'journal'
     auth_log: Path = Path('/var/log/auth.log')
-    ssh_threshold: int = Field(6, ge=2, le=4096)
+    ssh_threshold: int = Field(2, ge=2, le=4096)
     ssh_window: int = Field(60, ge=1, le=3600)
     scan_threshold: int = Field(10, ge=2, le=4096)
     scan_window: int = Field(60, ge=1, le=3600)
