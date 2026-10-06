@@ -17,6 +17,9 @@ if [[ -n "$pid" ]]; then
     sleep 1
   done
   sudo kill -KILL -- "-$pid" 2>/dev/null || true
+  sudo kill -TERM "$pid" 2>/dev/null || true
+  sleep 1
+  sudo kill -KILL "$pid" 2>/dev/null || true
 fi
 
 # Clean up a detached/stale VPSentry listener if its PID file was lost.

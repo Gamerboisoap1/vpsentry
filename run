@@ -11,7 +11,7 @@ mkdir -p "$PROJECT_DIR/data"
 if [[ "${1:-}" != "--service" ]]; then
   if [[ -f "$PID_FILE" ]]; then
     old_pid="$(cat "$PID_FILE")"
-    if sudo kill -0 -- "-$old_pid" 2>/dev/null; then
+    if sudo kill -0 "$old_pid" 2>/dev/null; then
       printf 'VPSentry is already running (PID %s).\n' "$old_pid"
       exit 0
     fi
@@ -21,11 +21,19 @@ if [[ "${1:-}" != "--service" ]]; then
   if [[ "$EUID" -ne 0 ]]; then
     sudo -v
   fi
-  nohup setsid sudo -n "$PROJECT_DIR/run" --service </dev/null >>"$LOG_FILE" 2>&1 &
+  nohup setsid --fork sudo -n "$PROJECT_DIR/run" --service </dev/null >>"$LOG_FILE" 2>&1 &
   service_pid=$!
   echo "$service_pid" >"$PID_FILE"
-  sleep 1
-  if ! sudo kill -0 -- "-$service_pid" 2>/dev/null; then
+  service_group=''
+  for _ in {1..10}; do
+    recorded_pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+    if [[ -n "$recorded_pid" && "$recorded_pid" != "$service_pid" ]] && sudo kill -0 "$recorded_pid" 2>/dev/null; then
+      service_group="$recorded_pid"
+      break
+    fi
+    sleep 1
+  done
+  if [[ -z "$service_group" ]]; then
     rm -f "$PID_FILE"
     printf 'VPSentry did not start. Check %s for details.\n' "$LOG_FILE" >&2
     exit 1
@@ -37,6 +45,13 @@ if [[ "${1:-}" != "--service" ]]; then
 fi
 
 shift
+
+# Record the actual service process group so ./stop can terminate the server
+# and its network-monitor child together, even if the launcher PID changed.
+service_group="$(ps -o pgid= -p "$$" | tr -d '[:space:]')"
+if [[ -n "$service_group" ]]; then
+  printf '%s\n' "$service_group" >"$PID_FILE"
+fi
 
 if [[ "$(uname -s)" != "Linux" ]]; then
   printf 'VPSentry RUN is intended for a Linux VPS.\n' >&2
