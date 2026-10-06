@@ -4,6 +4,40 @@ set -Eeuo pipefail
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
+PID_FILE="$PROJECT_DIR/data/vpsentry.pid"
+LOG_FILE="$PROJECT_DIR/data/vpsentry.log"
+mkdir -p "$PROJECT_DIR/data"
+
+if [[ "${1:-}" != "--service" ]]; then
+  if [[ -f "$PID_FILE" ]]; then
+    old_pid="$(cat "$PID_FILE")"
+    if sudo kill -0 -- "-$old_pid" 2>/dev/null; then
+      printf 'VPSentry is already running (PID %s).\n' "$old_pid"
+      exit 0
+    fi
+    rm -f "$PID_FILE"
+  fi
+
+  if [[ "$EUID" -ne 0 ]]; then
+    sudo -v
+  fi
+  nohup setsid sudo -n "$PROJECT_DIR/run" --service </dev/null >>"$LOG_FILE" 2>&1 &
+  service_pid=$!
+  echo "$service_pid" >"$PID_FILE"
+  sleep 1
+  if ! sudo kill -0 -- "-$service_pid" 2>/dev/null; then
+    rm -f "$PID_FILE"
+    printf 'VPSentry did not start. Check %s for details.\n' "$LOG_FILE" >&2
+    exit 1
+  fi
+  server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  server_ip="${server_ip:-SERVER_IP}"
+  printf 'VPSentry is running in the background.\nOpen: http://%s:8787\nLog: %s\nStop it with: ./stop\n' "$server_ip" "$LOG_FILE"
+  exit 0
+fi
+
+shift
+
 if [[ "$(uname -s)" != "Linux" ]]; then
   printf 'VPSentry RUN is intended for a Linux VPS.\n' >&2
   exit 1
@@ -84,6 +118,6 @@ network_pid=$!
 
 server_ip="$(hostname -I 2>/dev/null | awk '{print $1}')"
 server_ip="${server_ip:-SERVER_IP}"
-printf '\nVPSentry is running.\nOpen: http://%s:8787\nPress Ctrl+C to stop it.\n\n' "$server_ip"
+printf 'VPSentry service started on http://%s:8787\n' "$server_ip"
 
 .venv/bin/python -m backend

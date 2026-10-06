@@ -3,21 +3,25 @@ set -Eeuo pipefail
 
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 PID_FILE="$PROJECT_DIR/data/vpsentry.pid"
-if [[ ! -f "$PID_FILE" ]]; then
+pid=''
+if [[ -f "$PID_FILE" ]]; then
+  pid="$(cat "$PID_FILE")"
+fi
+
+if [[ -n "$pid" ]]; then
+  sudo kill -TERM -- "-$pid" 2>/dev/null || true
+  for _ in {1..15}; do
+    if ! sudo kill -0 -- "-$pid" 2>/dev/null; then
+      break
+    fi
+    sleep 1
+  done
+  sudo kill -KILL -- "-$pid" 2>/dev/null || true
+fi
+
+# Clean up a detached/stale VPSentry listener if its PID file was lost.
+if command -v fuser >/dev/null 2>&1; then
   sudo fuser -k 8787/tcp 2>/dev/null || true
-  printf 'VPSentry stopped.\n'
-  exit 0
 fi
-pid="$(cat "$PID_FILE")"
-sudo kill -- "-$pid" 2>/dev/null || sudo kill "$pid" 2>/dev/null || true
-for _ in {1..10}; do
-  kill -0 "$pid" 2>/dev/null || break
-  sleep 1
-done
-if kill -0 "$pid" 2>/dev/null; then
-  sudo kill -KILL -- "-$pid" 2>/dev/null || sudo kill -KILL "$pid" 2>/dev/null || true
-fi
-# Catch a stale PID file or a server that detached from the launcher.
-sudo fuser -k 8787/tcp 2>/dev/null || true
 rm -f "$PID_FILE"
-printf 'VPSentry stopped.\n'
+printf 'VPSentry and its monitor processes are stopped.\n'
